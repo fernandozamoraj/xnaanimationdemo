@@ -1,0 +1,82 @@
+8
+
+dir
+284
+https://extranetdev.mclaneat.com/svn/GameDev/Trunk/Fernando.Zamora/Code/AnimationDemo/GameBase
+https://extranetdev.mclaneat.com/svn/GameDev
+
+
+
+2007-11-22T09:12:37.268375Z
+79
+fernando.zamora@mclaneat.com
+
+
+svn:special svn:externals svn:needs-lock
+
+
+
+
+
+
+
+
+
+
+
+942b3507-abc1-f449-b3ae-d0c8cc201da7
+
+TimerManager.cs
+file
+
+
+
+
+2007-11-22T08:57:51.500000Z
+315f574aedcb28f75fa07a6f5b810b94
+2007-11-22T09:12:37.268375Z
+79
+fernando.zamora@mclaneat.com
+
+Animation.cs
+file
+
+
+
+
+2007-11-15T01:24:11.965946Z
+ae851c6aba2a38eb9b12c53e3017cc15
+2007-11-15T04:10:19.515625Z
+26
+fernando.zamora@mclaneat.com
+
+GameBase.csproj
+file
+
+
+
+
+2007-12-03T13:25:56.875000Z
+026267fc9c86006af7f145e2f798298e
+2007-11-22T09:12:37.268375Z
+79
+fernando.zamora@mclaneat.com
+
+Data
+dir
+
+Sprite.cs
+file
+
+
+
+
+2007-11-22T08:23:41.312500Z
+ee2de1d014498b948116b7faafe994df
+2007-11-22T09:12:37.268375Z
+79
+fernando.zamora@mclaneat.com
+
+Properties
+dir
+

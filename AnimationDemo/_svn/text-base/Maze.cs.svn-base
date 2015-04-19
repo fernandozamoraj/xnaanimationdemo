@@ -1,0 +1,548 @@
+using System;
+using System.Collections.Generic;
+using System.Text;
+using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Content;
+using Microsoft.Xna.Framework.Graphics;
+
+namespace AnimationDemo
+{
+    public class Maze
+    {
+        #region Fields
+
+        int[,] _Tiles;
+        List<Texture2D> _TextTures = new List<Texture2D>();
+        List<PowerPellet> _PowerPellets = new List<PowerPellet>();
+        int _TileSize = 32;
+        int PELLET_TILE_VALUE = 0;
+        int EMPTY_PELLETE_TILE_VALUE = 32;
+        int POWER_PELLET_TILE_VALUE = 33;
+
+        #endregion
+
+        #region Events
+
+        public event EventHandler OnAtePowerPellet;
+        public event EventHandler OnAtePellet;
+
+        #endregion
+
+
+        public Vector2 GetRowAndCol(Vector2 obj)
+        {
+            int row1 = Convert.ToInt32(obj.Y / _TileSize);
+            int col1 = Convert.ToInt32(obj.X / _TileSize);
+
+            Vector2 result = new Vector2(Convert.ToSingle(col1), Convert.ToSingle(row1));
+
+            return result;
+        }
+
+        /// <summary>
+        /// Finds path from obj1 to obj2 in the tile
+        /// Actually only finds part of the path
+        /// It is intended this way since we pacman is a moving target
+        ///  
+        /// </summary>
+        /// <param name="obj1">actual x, y location of obj1</param>
+        /// <param name="obj2">actual x, y location of obj2</param>
+        /// <returns>Vector of row cols on grid</returns>
+        public Queue<Vector2> FindPath(Vector2 obj1, Vector2 obj2, int maxMoves)
+        {
+
+            int row1 = Convert.ToInt32( obj1.Y / _TileSize);
+            int col1 = Convert.ToInt32( obj1.X / _TileSize);
+            int row2 = Convert.ToInt32( obj2.Y / _TileSize);
+            int col2 = Convert.ToInt32( obj2.X / _TileSize);
+            Queue<Vector2> path = new Queue<Vector2>();
+
+            //Add self to path
+  //          path.Enqueue(new Vector2(Convert.ToSingle(row1), Convert.ToSingle(col1)));
+
+            int tempRow = row1;
+            int tempCol = col1;
+
+            while (path.Count < maxMoves)
+            {
+                bool foundMove = false;
+
+
+                bool goVertical = false;
+
+
+                //Go for the greater distance of vertical or horizontal
+                if (Math.Abs(col2 - tempRow) > Math.Abs(row2 - tempRow))
+                {
+                    goVertical = true;
+                }
+
+                if (goVertical && tempRow < row2)
+                { 
+                    if(IsValidMove(tempRow + 1, tempCol, path))
+                    {
+                        tempRow += 1;
+                        path.Enqueue(new Vector2( Convert.ToSingle(tempCol), Convert.ToSingle(tempRow)));
+                        foundMove = true;
+                    }                    
+                }
+                else if (goVertical && tempRow > row2)
+                {
+                    if (IsValidMove(tempRow - 1, tempCol, path))
+                    {
+                        tempRow -= 1;
+                        path.Enqueue(new Vector2(Convert.ToSingle(tempCol), Convert.ToSingle(tempRow)));
+                        foundMove = true;
+                    }
+                }
+
+                if (!foundMove && tempCol < col2)
+                {
+                    if (IsValidMove(tempRow, tempCol+1, path))
+                    {
+                        tempCol += 1;
+                        path.Enqueue(new Vector2(Convert.ToSingle(tempCol), Convert.ToSingle(tempRow)));
+                        foundMove = true;
+                    }
+                }
+                else if (!foundMove && tempCol > col2)
+                {
+                    if (IsValidMove(tempRow, tempCol-1, path))
+                    {
+                        tempCol -= 1;
+                        path.Enqueue(new Vector2(Convert.ToSingle(tempCol), Convert.ToSingle(tempRow)));
+                        foundMove = true;
+                    }
+                }
+
+                if (!foundMove && tempRow < row2)
+                {
+                    if (IsValidMove(tempRow + 1, tempCol, path))
+                    {
+                        tempRow += 1;
+                        path.Enqueue(new Vector2(Convert.ToSingle(tempCol), Convert.ToSingle(tempRow)));
+                        foundMove = true;
+                    }
+                }
+                else if (!foundMove && tempRow > row2)
+                {
+                    if (IsValidMove(tempRow - 1, tempCol, path))
+                    {
+                        tempRow -= 1;
+                        path.Enqueue(new Vector2(Convert.ToSingle(tempCol), Convert.ToSingle(tempRow)));
+                        foundMove = true;
+                    }
+                }
+
+                if (!foundMove)
+                {
+                    if (IsValidMove(tempRow + 1, tempCol, path))
+                    {
+                        tempRow += 1;
+                        path.Enqueue(new Vector2(Convert.ToSingle(tempCol), Convert.ToSingle(tempRow)));
+                        foundMove = true;
+                    }
+                    else if(IsValidMove(tempRow - 1, tempCol, path))
+                    {
+                        tempRow -= 1;
+                        path.Enqueue(new Vector2(Convert.ToSingle(tempCol), Convert.ToSingle(tempRow)));
+                        foundMove = true;
+                    }
+                    else if (IsValidMove(tempRow, tempCol + 1, path))
+                    {
+                        tempCol += 1;
+                        path.Enqueue(new Vector2(Convert.ToSingle(tempCol), Convert.ToSingle(tempRow)));
+                        foundMove = true;
+                    }
+                    else if (IsValidMove(tempRow, tempCol - 1, path))
+                    {
+                        tempCol -= 1;
+                        path.Enqueue(new Vector2(Convert.ToSingle(tempCol), Convert.ToSingle(tempRow)));
+                        foundMove = true;
+                    }
+                }
+
+                //If we found the full path
+                //or if we ran into a position where we cannot get out of
+                //such as going in a circle we would get stuck so lets break
+                if (tempCol == col2 && tempRow == row2 || !foundMove)
+                {
+                    break;
+                }                              
+            }
+
+            return path;
+        }
+
+        private bool IsValidMove(int row, int col, Queue<Vector2> visitedPath)
+        {
+            bool result = false;
+
+            if (row > 0 && row < _Tiles.GetLength(0))
+            {
+                if (col > 0 && col < _Tiles.GetLength(1))
+                {
+                    if (_Tiles[row, col] == POWER_PELLET_TILE_VALUE ||
+                        _Tiles[row, col] == PELLET_TILE_VALUE ||
+                        _Tiles[row, col] == EMPTY_PELLETE_TILE_VALUE)
+                    {
+                        result = true;
+
+                        foreach (Vector2 v in visitedPath.ToArray())
+                        {
+                            //Contains does not work so we had to do our own
+                           if(v.X == Convert.ToSingle(col) && v.Y == Convert.ToSingle(row))
+                           {
+                                result = false;
+                                break;
+                           }
+                        }
+                    }
+                }
+            }
+
+            return result;
+        }
+
+        
+
+        public bool SpritesCollide(PacmanSprite sprite1, PacmanSprite sprite2)
+        {
+            Rectangle rec1 = new Rectangle(Convert.ToInt32( sprite1.Location.X+8), Convert.ToInt32( sprite1.Location.Y+8), 16, 16);
+            Rectangle rec2 = new Rectangle(Convert.ToInt32( sprite2.Location.X+8), Convert.ToInt32( sprite2.Location.Y+8), 16, 16);
+          
+
+            if(rec1.Intersects(rec2))
+            {
+                return true;
+            }
+
+            return false;        
+        }
+
+        public bool CanMoveThere(float x, float y, Direction prevDirection, Direction direction, float speed, SpriteType spriteType)
+        {
+            float x1 = x;
+            float y1 = y;
+
+            //Adjust for sprite width and height
+            if(direction == Direction.Right)
+            {
+                x1 += _TileSize;
+                y1 += _TileSize/2;
+
+                //if (y % _TileSize == 0)
+                //{
+                //    canMove = true;
+                //}
+            }
+            if(direction == Direction.Down)
+            {
+                y1 += _TileSize;
+                x1 += _TileSize/2;
+
+                //if (x % _TileSize == 0)
+                //{
+                //    canMove = true;
+                //}
+
+            }
+
+            if (direction == Direction.Left)
+            {
+                y1 += _TileSize/2;
+
+                //if (y % _TileSize == 0)
+                //{
+                //    canMove = true;
+                //}
+            }
+
+            if (direction == Direction.Up)
+            {
+                x1 += _TileSize/2;
+
+                //if (x % _TileSize == 0)
+                //{
+                //    canMove = true;
+                //}
+            }
+
+            int row = Convert.ToInt32( Math.Floor( y1/_TileSize) );
+            int col = Convert.ToInt32( Math.Floor( x1/_TileSize) );
+
+            if ((prevDirection == Direction.Down || prevDirection == Direction.Up) &&
+                (direction == Direction.Left || direction == Direction.Right))
+            {
+                bool isValidMove = false;
+
+                for (int i = Convert.ToInt32( -speed); i <= Convert.ToInt32( speed); i++)
+                { 
+                    float testY = y + i;
+
+                    if (testY % _TileSize == 0)
+                    {
+                        isValidMove = true;
+                        break;
+                    }
+                
+                }
+
+                if (!isValidMove)
+                {
+                    return isValidMove;
+                }                
+            }
+
+            if ((prevDirection == Direction.Left || prevDirection == Direction.Right) &&
+                (direction == Direction.Up || direction == Direction.Down))
+            {
+                bool isValidMove = false;
+
+                for (int i = Convert.ToInt32( -speed); i <= Convert.ToInt32( speed ); i++)
+                {
+                    float testX = x + i;
+
+                    if (testX % _TileSize == 0)
+                    {
+                        isValidMove = true;
+                        break;
+                    }
+                }
+
+                if (!isValidMove)
+                {
+                    return isValidMove;
+                }
+            }
+
+            if (row < 0) row = 0;
+            if (col < 0) col = 0;
+                       
+            //If it is a blank space
+            int tileValue;
+
+            if (row < _Tiles.GetLength(0) && col < _Tiles.GetLength(1))
+            {
+                tileValue = _Tiles[row, col];
+
+                //Blank tile or pellet tile
+                if ((tileValue == PELLET_TILE_VALUE || tileValue == EMPTY_PELLETE_TILE_VALUE  || tileValue == POWER_PELLET_TILE_VALUE))
+                {
+                    //Eat the pellet
+                    if (spriteType == SpriteType.PacMan && (tileValue == PELLET_TILE_VALUE || tileValue == POWER_PELLET_TILE_VALUE))
+                    {
+                        for (int i = -6; i < 6; i++)
+                        {
+                            for (int j = -6; j < 6; j++)
+                            {
+                                int testX = (col * _TileSize) + j;
+                                int testY = (row * _TileSize) + i;
+
+                                if (x == testX && y == testY)
+                                {
+                                    //Deactivate power pellets
+                                    if (tileValue == POWER_PELLET_TILE_VALUE)
+                                    {
+                                        PowerPellet p = GetPowerPellet(col, row);
+
+                                        if (p.IsActive)
+                                        {
+
+                                            p.IsActive = false;
+
+                                            if (OnAtePowerPellet != null)
+                                            {
+                                                OnAtePowerPellet(this, EventArgs.Empty);
+                                            }
+                                        }
+                                    }
+                                    else if (tileValue == PELLET_TILE_VALUE)
+                                    {
+                                        if (OnAtePellet != null)
+                                        {
+                                            OnAtePellet(this, EventArgs.Empty);
+                                        }
+                                    }
+
+                                    //Change the tile
+                                    _Tiles[row, col] = 32;
+
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    return true;
+                }
+            }//Going through the right exit
+            else if (col >= _Tiles.GetLength(1))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        private PowerPellet GetPowerPellet(int col, int row)
+        {
+            if (col == 1 && row == 2)
+            {
+                return _PowerPellets[0];
+            }
+            if (col == 17 && row == 2)
+            {
+                return _PowerPellets[1];
+            }
+            if (col == 1 && row == 15)
+            {
+                return _PowerPellets[2];
+            }
+            if (col == 17 && row == 15)
+            {
+                return _PowerPellets[3];
+            }
+
+            return null;
+        }
+
+        public Maze()
+        {
+            InitMaze();
+        }
+
+        public bool CheckIfPelletsRemain()
+        {
+            bool pelletsRemain = false;
+
+            for (int row = 0; row  < _Tiles.GetLength(0); row++)
+            { 
+                for(int col = 0; col < _Tiles.GetLength(1); col++)
+                {
+                    int tileValue = _Tiles[row, col];
+
+                    if (tileValue == POWER_PELLET_TILE_VALUE || tileValue == PELLET_TILE_VALUE)
+                    {
+                        pelletsRemain = true;
+                        break;
+                    }
+                }
+            }
+
+            return pelletsRemain;
+        }
+
+        public void InitMaze()
+        {
+            Vector2[] ppLocations = new Vector2[] { new Vector2(_TileSize, 64), new Vector2(17 * _TileSize, 64), new Vector2(_TileSize, 15 * _TileSize), new Vector2(17 * _TileSize, 15 * _TileSize) };
+
+            if (_PowerPellets.Count < 4)
+            {
+                for (int i = 0; i < 4; i++)
+                {
+                    PowerPellet p = new PowerPellet(Convert.ToInt32(ppLocations[i].X), Convert.ToInt32(ppLocations[i].Y));
+
+                    p.IsActive = true;
+
+                    _PowerPellets.Add(p);
+                }
+            }
+            else 
+            {
+                foreach (PowerPellet p in _PowerPellets)
+                {
+                    p.IsActive = true;
+                }
+            }
+
+            _Tiles = new int[,] { 
+                {23,17,17,17,17,17,17,17,17,28,17,17,17,17,17,17,17,17,20}, //1
+                {16,00,00,00,00,00,00,00,00,01,00,00,00,00,00,00,00,00,18}, //2
+                {16,33,14,15,00,14,19,15,00,01,00,14,19,15,00,14,15,33,18}, //3
+                {16,00,13,12,00,13,17,12,00,08,00,13,17,12,00,13,12,00,18}, //4
+                {16,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,18}, //5
+                {16,00,09,11,00,10,00,09,02,04,02,11,00,10,00,09,11,00,18}, //6
+                {16,00,00,00,00,01,00,00,00,01,00,00,00,01,00,00,00,00,18}, //7
+                {22,19,19,15,00,07,02,11,00,08,00,09,02,05,00,14,19,19,21}, //8
+                {32,32,32,16,00,01,32,32,32,32,32,32,32,01,00,18,32,32,32}, //9
+                {17,17,17,12,00,08,32,14,19,19,19,15,32,08,00,13,17,17,17}, //10
+                {32,32,32,32,00,32,32,18,32,32,32,16,32,32,00,32,32,32,32}, //11
+                {19,19,19,15,00,10,32,13,17,17,17,12,32,10,00,14,19,19,19}, //12
+                {32,32,32,16,00,01,32,32,32,32,32,32,32,01,00,18,32,32,32}, //13 
+                {23,17,17,12,00,08,32,09,02,04,02,11,32,08,00,13,17,17,20}, //14
+                {16,00,00,00,00,00,00,00,00,01,00,00,00,00,00,00,00,00,18}, //15
+                {16,33,09,25,00,09,02,11,00,08,00,09,02,11,00,24,11,33,18}, //16
+                {16,00,00,01,00,00,00,00,00,00,00,00,00,00,00,01,00,00,18}, //17
+                {31,11,00,08,00,10,00,09,02,04,02,11,00,10,00,08,00,09,29}, //18
+                {16,00,00,00,00,01,00,00,00,01,00,00,00,01,00,00,00,00,18}, //19
+                {16,00,09,02,02,06,02,11,00,08,00,09,02,06,02,02,11,00,18}, //20
+                {16,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,18}, //21
+                {22,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,21}}; //22
+            
+
+        }
+
+        public void Load(ContentManager content)
+        {
+            GameSettings settings = GameSettings.GetGameSettings();
+
+
+            int tilesCount = 35;
+            for (int i = 0; i < tilesCount; i++)
+            {
+                _TextTures.Add(content.Load<Texture2D>(settings.ImagesPath + "Map/Tile" + i.ToString()));
+            }
+
+            foreach (PowerPellet p in _PowerPellets)
+            {
+                p.Load(content);
+            }
+            
+        }
+
+        public virtual void Update(double gameTime, double elapsedTime)
+        {
+            foreach (PowerPellet p in _PowerPellets)
+            {
+                p.Update(gameTime, elapsedTime);
+            }
+        }
+
+        public void Draw(SpriteBatch spriteBatch)
+        {
+            spriteBatch.Begin();
+
+            int rows = _Tiles.GetLength(0);
+            int columns = _Tiles.GetLength(1);
+
+            for (int i = 0; i < rows ; i++)
+            {
+                for (int j = 0; j < columns; j++)
+                {
+                    Texture2D temp = _TextTures[_Tiles[i, j]];
+
+                    int x = j * _TileSize;
+                    int y = i * _TileSize;
+
+                    spriteBatch.Draw(temp, new Rectangle(x, y, 34, 34), Color.White);
+                    //Game1.SpriteBatch.Draw(_CurrentFrameTexture, Location, new Rectangle((int)(Location.X + .5f), (int)(Location.Y + .5f), (int)Size.X, (int)Size.Y), Color.White, 0f, new Vector2(Size.X/2, Size.Y/2), _Animations[_ActiveAnimation].Scale, SpriteEffects.None, .1f);
+                }
+            }
+
+            spriteBatch.End();
+
+            foreach (PowerPellet pp in _PowerPellets)
+            {
+                if (pp.IsActive)
+                {
+                    if (pp.SpriteBatch == null)
+                    {
+                        pp.SpriteBatch = spriteBatch;
+                    }
+
+                    pp.Draw();
+                }
+            }
+        }
+    }
+}

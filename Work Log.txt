@@ -1,0 +1,17 @@
+All work prior to 11-18-2007 Not logged All told prior to today about 10-12 hours put into this effort
+
+Date           Pgmr    Time      Action
+---------------------------------------
+11-18-2007     Fzj       5 hours       Added logic to compensate for speed
+                                       There is a bug known where it will not 
+                                       move completely over to the right like it 
+                                       does to left.  I just added logic so that it would not
+                                       get stuck because of this   
+11-18-2007     FZJ      3 hours	       Added all ghosts and collision detection
+11-19-2007     FZJ      3.5 hrs        Adde more advanced AI for tracking pacman
+                                       looked into using Dijktra's algorithm but then
+                                       realized it was unnecessary because I only need to travel
+                                       part of the distance each time since pacman is a moving target
+11-22-2007     FZJ      3.5 hrs        Refactored goblins into their own class which inherits from pacman
+11-22-2007     FZJ       .5 hrs        Created TimerManager class in base to allow keeping track of timed events
+11-22-2007     FZJ      1.5 HRS        Added sounds
